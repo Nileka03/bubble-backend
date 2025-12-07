@@ -5,7 +5,7 @@ import http from "http";
 import { connectDB } from "./lib/db.js";
 import userRouter from "./routes/userRoutes.js";
 import messageRouter from "./routes/messageRoutes.js";
-import {Server} from "socket.io"
+import { Server } from "socket.io"
 
 //create express app and http server
 const app = express();
@@ -13,14 +13,14 @@ const server = http.createServer(app);
 
 //initialize socket.io server
 export const io = new Server(server, {
-    cors:{origin: "*"}
+    cors: { origin: "*" }
 })
 
 //store online users
-export const userSocketMap = {}; // {userId: socketID}
+export const userSocketMap = {}; // userId: socketId
 
 //socket.io connection handler
-io.on("connection", (socket)=>{
+io.on("connection", (socket) => {
     const userId = socket.handshake.query.userId;
     console.log("User Connected", userId);
 
@@ -30,7 +30,7 @@ io.on("connection", (socket)=>{
 
     io.emit("getOnlineUsers", Object.keys(userSocketMap));
 
-    socket.on("disconnect", ()=>{
+    socket.on("disconnect", () => {
         console.log("User Disconnected", userId);
         delete userSocketMap[userId];
         io.emit("getOnlineUsers", Object.keys(userSocketMap))
@@ -38,9 +38,10 @@ io.on("connection", (socket)=>{
 })
 
 //middlewares
-app.use(express.json({limit: "4mb"}));
+app.use(express.json({ limit: "50mb" }));
+app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(cors());
- 
+
 //Route setup
 app.use("/api/status", (req, res) => res.send("Server is running"));
 app.use("/api/auth", userRouter);

@@ -4,17 +4,17 @@ import User from "../models/User.js";
 import bcrypt from "bcryptjs";
 
 // sign up a new user 
-export const signup = async (req, res)=>{
-    const {fullName, email, password, bio} = req.body;
+export const signup = async (req, res) => {
+    const { fullName, email, password, bio } = req.body;
 
     try {
-        if(!fullName || !email || !password || !bio){
-            return res.status(400).json({success: false, message: "Missing Details"})
+        if (!fullName || !email || !password || !bio) {
+            return res.status(400).json({ success: false, message: "Missing Details" })
         }
-        const user = await User.findOne({email});
+        const user = await User.findOne({ email });
 
-        if(user){
-            return res.status(400).json({success: false, message: "Account already exists"})
+        if (user) {
+            return res.status(400).json({ success: false, message: "Account already exists" })
         }
 
         //generate the encrypted password
@@ -30,67 +30,67 @@ export const signup = async (req, res)=>{
         //token to autheticate the user
 
         const token = generateToken(newUser._id)
-        res.json({success: true, userData: newUser,token, message: "Account creation is Successful"})
+        res.json({ success: true, userData: newUser, token, message: "Account creation is Successful" })
 
     } catch (error) {
         console.log(error.message)
-        res.status(500).json({success: false, message: error.message})
+        res.status(500).json({ success: false, message: error.message })
     }
 }
 
 
 // user login
 
-export const login = async (req, res)=>{
+export const login = async (req, res) => {
     try {
-        const {email, password} = req.body;
-        const userData = await User.findOne({email})
+        const { email, password } = req.body;
+        const userData = await User.findOne({ email })
 
         if (!userData) {
-      return res.status(400).json({ success: false, message: "User not found" });
-    }
+            return res.status(400).json({ success: false, message: "Invalid username or password" });
+        }
 
         //check the password
         const isPasswordCorrect = await bcrypt.compare(password, userData.password);
 
-        if(!isPasswordCorrect){
-            return res.status(400).json({success: false, message: "Invalid credentials"});
+        if (!isPasswordCorrect) {
+            return res.status(400).json({ success: false, message: "Invalid username or password" });
         }
 
         const token = generateToken(userData._id)
-        res.json({success: true, userData,token, message: "Login Successfull"})
+        res.json({ success: true, userData, token, message: "Login Successfull" })
 
     } catch (error) {
         console.log(error.message)
-        res.status(500).json({success: false, message: error.message})
+        res.status(500).json({ success: false, message: error.message })
     }
 }
 
 //controller to check if the user is autheticated
 
-export const checkAuth = (req, res)=>{
-    res.json({success: true, user: req.user});
+export const checkAuth = (req, res) => {
+    res.json({ success: true, user: req.user });
 }
 
 // controller to update user profile details
 
-export const updateProfile = async (req, res)=>{
+export const updateProfile = async (req, res) => {
     try {
-        const {profilePic, bio, fullName} = req.body;
+        const { profilePic, bio, fullName } = req.body;
 
         const userId = req.user._id;
         let updatedUser;
 
-        if(!profilePic){
-            updatedUser = await User.findByIdAndUpdate(userId, {bio, fullName}, {new: true})
-        } else{
+        if (!profilePic) {
+            updatedUser = await User.findByIdAndUpdate(userId, { bio, fullName }, { new: true })
+        } else {
             const upload = await cloudinary.uploader.upload(profilePic);
 
-            updatedUser = await User.findByIdAndUpdate(userId, {profilePic: upload.secure_url, bio, fullName}, {new:true});
+            updatedUser = await User.findByIdAndUpdate(userId, { profilePic: upload.secure_url, bio, fullName }, { new: true });
         }
-        res.json({success: true, user: updatedUser})
+        res.json({ success: true, user: updatedUser })
     } catch (error) {
         console.log(error.message);
-        res.json({success: false, message: error.message});
+        res.json({ success: false, message: error.message });
     }
 }
