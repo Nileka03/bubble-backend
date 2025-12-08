@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import Message from "../models/message.js";
+import Message from "../models/Message.js";
 import dotenv from "dotenv";
 dotenv.config();
 
