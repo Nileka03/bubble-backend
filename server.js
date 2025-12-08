@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import "dotenv/config";
 import http from "http";
-import cookieParser from "cookie-parser"; // 1. IMPORT THIS
+import cookieParser from "cookie-parser";
 import { connectDB } from "./lib/db.js";
 import userRouter from "./routes/userRoutes.js";
 import messageRouter from "./routes/messageRoutes.js";
@@ -13,12 +13,14 @@ import { Server } from "socket.io";
 const app = express();
 const server = http.createServer(app);
 
+const allowedOrigin = process.env.CLIENT_URL || "http://localhost:5173";
+
 // initialize socket.io server
 export const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173", // 2. Match this to your frontend URL
+    origin: "http://localhost:5173",
     methods: ["GET", "POST"],
-    credentials: true, // Allow cookies in socket handshake too
+    credentials: true,
   },
 });
 
@@ -45,19 +47,19 @@ io.on("connection", (socket) => {
 // middlewares
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
-app.use(cookieParser()); // 3. USE THIS (Crucial for Auth)
+app.use(cookieParser());
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: allowedOrigin,
     credentials: true,
   })
 );
 
 // Route setup
-app.use("/api/status", (req, res) => res.send("Server is running"));
+app.use("/api/status", (req, res) => res.status(200).json({ status: "ok", message: "Server is running" }));
 app.use("/api/auth", userRouter);
 app.use("/api/messages", messageRouter);
-app.use("/api/ai", aiRoutes); // This fixes the 404!
+app.use("/api/ai", aiRoutes);
 
 // connect to database
 await connectDB();
