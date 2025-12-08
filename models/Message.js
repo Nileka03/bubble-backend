@@ -26,7 +26,7 @@ const messageSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// compound index for fetching conversation between two users
+// fetching conversation between two users
 messageSchema.index({ senderId: 1, receiverId: 1, createdAt: -1 });
 
 // index for unseen messages
