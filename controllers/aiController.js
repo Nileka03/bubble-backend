@@ -5,7 +5,9 @@ dotenv.config();
 
 // Initialize Gemini
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+
+const model = genAI.getGenerativeModel({ model: "gemma-3-4b-it" });
 
 const FALLBACK_SUGGESTIONS = ["Tell me more", "I'm not sure", "Let's talk later"];
 
@@ -14,7 +16,7 @@ export const getSmartReplies = async (req, res) => {
     const { id: userToChatId } = req.params;
     const myId = req.user._id;
 
-    console.log("\n--- AI REQUEST START (GEMINI) ---");
+    console.log("\n--- AI REQUEST START (SMART REPLY) ---");
 
     // 1. Fetch Context
     const messages = await Message.find({
@@ -34,15 +36,9 @@ export const getSmartReplies = async (req, res) => {
       return `${role}: ${m.text}`;
     }).join("\n");
 
-    const lastMessage = messages[messages.length - 1];
     console.log("Context:\n", conversationText);
 
-    // --- SAFETY CHECK (Disable if testing with self-messages) ---
-    // if (lastMessage.senderId.toString() === myId.toString()) {
-    //    return res.status(200).json({ suggestions: [] });
-    // }
-
-    // 3. Prompt for Gemini
+    // 3. Prompt for Gemma
     const prompt = `
       You are a smart reply assistant.
       Read the following chat history between "Me" and "Partner".
@@ -55,16 +51,13 @@ export const getSmartReplies = async (req, res) => {
       ["Reply 1", "Reply 2", "Reply 3"]
     `;
 
-    // 4. Call Gemini API
+    // 4. Call API
     try {
       const result = await model.generateContent(prompt);
       const response = await result.response;
       let text = response.text();
 
-      console.log("Raw Gemini Output:", text);
-
       // 5. Clean & Parse
-      // Remove markdown code blocks (Gemini loves adding ```json)
       text = text.replace(/```json/g, "").replace(/```/g, "").trim();
       
       let suggestions = [];
@@ -83,12 +76,54 @@ export const getSmartReplies = async (req, res) => {
       res.status(200).json({ suggestions });
 
     } catch (apiError) {
-      console.error("Gemini API Failed:", apiError.message);
+      console.error("AI API Failed:", apiError.message);
       res.status(200).json({ suggestions: FALLBACK_SUGGESTIONS });
     }
 
   } catch (error) {
     console.error("Critical Error:", error);
     res.status(500).json({ error: "Server Error" });
+  }
+};
+
+// analyze mood function
+export const analyzeMood = async (conversationHistory) => {
+  try {
+    const prompt = `
+      Analyze the emotional tone of the following conversation.
+      
+      Conversation:
+      ${conversationHistory.map(msg => `${msg.sender === "me" ? "User" : "Partner"}: ${msg.text}`).join("\n")}
+
+      Rules:
+      1. Return ONLY a valid JSON object. Do not add markdown blocks.
+      2. The "emotion" field must be exactly one of the following:
+         "joy", "love", "grateful", "confident", "surprised", "calm", 
+         "neutral", "bored", "confused", "anxious", "sad", "angry".
+      3. The "intensity" field must be a number between 0.0 (low) and 1.0 (high).
+      
+      Example Output:
+      { "emotion": "love", "intensity": 0.9 }
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    let text = response.text();
+
+    // Clean markdown if present
+    text = text.replace(/```json|```/g, "").trim();
+    
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        console.error("Mood JSON parse error", e);
+        // Default to neutral on parse error
+        return { emotion: "neutral", intensity: 0.5 };
+    }
+  } catch (error) {
+    console.error("Mood Analysis Error:", error.message);
+    
+    // Fallback default on API error
+    return { emotion: "neutral", intensity: 0.5 };
   }
 };
