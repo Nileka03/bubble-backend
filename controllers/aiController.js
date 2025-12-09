@@ -4,6 +4,9 @@ import dotenv from "dotenv";
 dotenv.config();
 
 // Initialize Gemini
+if (!process.env.GEMINI_API_KEY) {
+  console.error("CRITICAL ERROR: GEMINI_API_KEY is missing in environment variables.");
+}
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 
@@ -59,7 +62,7 @@ export const getSmartReplies = async (req, res) => {
 
       // 5. Clean & Parse
       text = text.replace(/```json/g, "").replace(/```/g, "").trim();
-      
+
       let suggestions = [];
       try {
         suggestions = JSON.parse(text);
@@ -69,14 +72,15 @@ export const getSmartReplies = async (req, res) => {
 
       // Filter empty/long strings
       suggestions = suggestions.filter(s => typeof s === 'string' && s.length > 0 && s.length < 60);
-      
+
       if (suggestions.length === 0) suggestions = FALLBACK_SUGGESTIONS;
 
       console.log("Sending:", suggestions);
       res.status(200).json({ suggestions });
 
     } catch (apiError) {
-      console.error("AI API Failed:", apiError.message);
+      console.error("AI API Failed. Details:", apiError);
+      if (apiError.response) console.error("API Response:", apiError.response);
       res.status(200).json({ suggestions: FALLBACK_SUGGESTIONS });
     }
 
@@ -112,17 +116,17 @@ export const analyzeMood = async (conversationHistory) => {
 
     // Clean markdown if present
     text = text.replace(/```json|```/g, "").trim();
-    
+
     try {
-        return JSON.parse(text);
+      return JSON.parse(text);
     } catch (e) {
-        console.error("Mood JSON parse error", e);
-        // Default to neutral on parse error
-        return { emotion: "neutral", intensity: 0.5 };
+      console.error("Mood JSON parse error", e);
+      // Default to neutral on parse error
+      return { emotion: "neutral", intensity: 0.5 };
     }
   } catch (error) {
-    console.error("Mood Analysis Error:", error.message);
-    
+    console.error("Mood Analysis Error Full:", error);
+
     // Fallback default on API error
     return { emotion: "neutral", intensity: 0.5 };
   }
