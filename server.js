@@ -18,7 +18,7 @@ const allowedOrigin = process.env.CLIENT_URL || "http://localhost:5173";
 // initialize socket.io server
 export const io = new Server(server, {
   cors: {
-    origin: allowedOrigin,
+    origin: "http://localhost:5173",
     methods: ["GET", "POST"],
     credentials: true,
   },
