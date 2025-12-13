@@ -1,8 +1,8 @@
-import message from "../models/message.js";
+import Message from "../models/Message.js";
 import User from "../models/User.js";
 import cloudinary from "../lib/cloudinary.js";
 import { io, userSocketMap } from "../server.js";
-import { analyzeMood } from "./aiController.js";
+import { analyzeMood } from "./aiController.js"; 
 
 export const getUserForSidebar = async (req, res) => {
     try {
@@ -10,7 +10,7 @@ export const getUserForSidebar = async (req, res) => {
         const filteredUsers = await User.find({ _id: { $ne: userId } }).select("-password");
 
         const usersWithLastMessage = await Promise.all(filteredUsers.map(async (user) => {
-            const lastMessage = await message.findOne({
+            const lastMessage = await Message.findOne({
                 $or: [
                     { senderId: userId, receiverId: user._id },
                     { senderId: user._id, receiverId: userId }
@@ -27,7 +27,7 @@ export const getUserForSidebar = async (req, res) => {
         // count number of message not seen
         const unseenMessages = {}
         const promises = filteredUsers.map(async (user) => {
-            const messages = await message.find({
+            const messages = await Message.find({
                 senderId: user._id, receiverId:
                     userId, seen: false
             })
@@ -52,13 +52,13 @@ export const getMessages = async (req, res) => {
         const { id: selectedUserId } = req.params;
         const myId = req.user._id;
 
-        const messages = await message.find({
+        const messages = await Message.find({
             $or: [
                 { senderId: myId, receiverId: selectedUserId },
                 { senderId: selectedUserId, receiverId: myId },
             ]
         })
-        await message.updateMany({ senderId: selectedUserId, receiverId: myId }, { seen: true });
+        await Message.updateMany({ senderId: selectedUserId, receiverId: myId }, { seen: true });
 
         res.json({ success: true, messages })
 
@@ -77,7 +77,7 @@ export const markMessageAsSeen = async (req, res) => {
         const myId = req.user._id;
 
         const { id } = req.params;
-        await message.findByIdAndUpdate(id, { seen: true })
+        await Message.findByIdAndUpdate(id, { seen: true })
         res.json({ success: true })
     }
     catch (error) {
@@ -98,7 +98,7 @@ export const sendMessage = async (req, res) => {
             const uploadResponse = await cloudinary.uploader.upload(image)
             imageUrl = uploadResponse.secure_url;
         }
-        const newMessage = await message.create({
+        const newMessage = await Message.create({
             senderId,
             receiverId,
             text,
@@ -115,14 +115,14 @@ export const sendMessage = async (req, res) => {
 
         // mood analysis
         // fetch context (Last 5 messages including the new one)
-        const recentMessages = await message.find({
+        const recentMessages = await Message.find({
             $or: [
                 { senderId: senderId, receiverId: receiverId },
                 { senderId: receiverId, receiverId: senderId },
             ],
         })
-            .sort({ createdAt: -1 })
-            .limit(5);
+        .sort({ createdAt: -1 })
+        .limit(5);
 
         // Prepare data
         const historyForAI = recentMessages.reverse().map(msg => ({
@@ -137,12 +137,12 @@ export const sendMessage = async (req, res) => {
                 io.to(receiverSocketId).emit("moodUpdate", { ...moodData, userId: senderId });
             }
             if (senderSocketId) {
-                // For the sender, the "partner" in the conversation is the receiver
+                 // For the sender, the "partner" in the conversation is the receiver
                 io.to(senderSocketId).emit("moodUpdate", { ...moodData, userId: receiverId });
             }
         }).catch(err => console.error("Mood analysis background error:", err));
 
-
+        
 
         res.json({ success: true, newMessage });
     }
