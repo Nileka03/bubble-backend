@@ -13,15 +13,12 @@ import { Server } from "socket.io";
 const app = express();
 const server = http.createServer(app);
 
-const allowedOrigins = [
-  "http://localhost:5173",
-  "https://bubble-frontend-six.vercel.app"
-];
+const allowedOrigin = process.env.CLIENT_URL || "http://localhost:5173";
 
 // initialize socket.io server
 export const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: "http://localhost:5173",
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -53,7 +50,7 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(cookieParser());
 app.use(
   cors({
-    origin: allowedOrigins,
+    origin: allowedOrigin,
     credentials: true,
   })
 );
