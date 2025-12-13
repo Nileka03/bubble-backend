@@ -10,4 +10,5 @@ messageRouter.put("/mark/:id", protectRoute, markMessageAsSeen);
 messageRouter.post("/send/:id", protectRoute, sendMessage);
 
 export default messageRouter;
+
  

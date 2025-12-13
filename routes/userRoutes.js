@@ -11,3 +11,4 @@ userRouter.get("/check", protectRoute, checkAuth);
 userRouter.delete("/delete", protectRoute, deleteAccount);
 
 export default userRouter;
+

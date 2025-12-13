@@ -96,6 +96,7 @@ export const updateProfile = async (req, res) => {
     }
 }
 
+
 // controller to delete user account
 export const deleteAccount = async (req, res) => {
     try {

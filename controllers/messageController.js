@@ -130,6 +130,7 @@ export const sendMessage = async (req, res) => {
             text: msg.text || (msg.image ? "[Image sent]" : ""),
         }));
 
+        
         // trigger analysis
         analyzeMood(historyForAI).then((moodData) => {
             // Emit 'moodUpdate' to both users so the ring changes for everyone
