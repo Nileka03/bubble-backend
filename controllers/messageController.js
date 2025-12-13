@@ -10,7 +10,7 @@ export const getUserForSidebar = async (req, res) => {
         const filteredUsers = await User.find({ _id: { $ne: userId } }).select("-password");
 
         const usersWithLastMessage = await Promise.all(filteredUsers.map(async (user) => {
-            const lastMessage = await Message.findOne({
+            const lastMessage = await message.findOne({
                 $or: [
                     { senderId: userId, receiverId: user._id },
                     { senderId: user._id, receiverId: userId }
@@ -27,7 +27,7 @@ export const getUserForSidebar = async (req, res) => {
         // count number of message not seen
         const unseenMessages = {}
         const promises = filteredUsers.map(async (user) => {
-            const messages = await Message.find({
+            const messages = await message.find({
                 senderId: user._id, receiverId:
                     userId, seen: false
             })
@@ -52,13 +52,13 @@ export const getMessages = async (req, res) => {
         const { id: selectedUserId } = req.params;
         const myId = req.user._id;
 
-        const messages = await Message.find({
+        const messages = await message.find({
             $or: [
                 { senderId: myId, receiverId: selectedUserId },
                 { senderId: selectedUserId, receiverId: myId },
             ]
         })
-        await Message.updateMany({ senderId: selectedUserId, receiverId: myId }, { seen: true });
+        await message.updateMany({ senderId: selectedUserId, receiverId: myId }, { seen: true });
 
         res.json({ success: true, messages })
 
@@ -77,7 +77,7 @@ export const markMessageAsSeen = async (req, res) => {
         const myId = req.user._id;
 
         const { id } = req.params;
-        await Message.findByIdAndUpdate(id, { seen: true })
+        await message.findByIdAndUpdate(id, { seen: true })
         res.json({ success: true })
     }
     catch (error) {
@@ -98,7 +98,7 @@ export const sendMessage = async (req, res) => {
             const uploadResponse = await cloudinary.uploader.upload(image)
             imageUrl = uploadResponse.secure_url;
         }
-        const newMessage = await Message.create({
+        const newMessage = await message.create({
             senderId,
             receiverId,
             text,
@@ -115,7 +115,7 @@ export const sendMessage = async (req, res) => {
 
         // mood analysis
         // fetch context (Last 5 messages including the new one)
-        const recentMessages = await Message.find({
+        const recentMessages = await message.find({
             $or: [
                 { senderId: senderId, receiverId: receiverId },
                 { senderId: receiverId, receiverId: senderId },
