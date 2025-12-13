@@ -1,8 +1,8 @@
-import Message from "../models/Message.js";
+import Message from "../models/message.js";
 import User from "../models/User.js";
 import cloudinary from "../lib/cloudinary.js";
 import { io, userSocketMap } from "../server.js";
-import { analyzeMood } from "./aiController.js"; 
+import { analyzeMood } from "./aiController.js";
 
 export const getUserForSidebar = async (req, res) => {
     try {
@@ -121,8 +121,8 @@ export const sendMessage = async (req, res) => {
                 { senderId: receiverId, receiverId: senderId },
             ],
         })
-        .sort({ createdAt: -1 })
-        .limit(5);
+            .sort({ createdAt: -1 })
+            .limit(5);
 
         // Prepare data
         const historyForAI = recentMessages.reverse().map(msg => ({
@@ -134,14 +134,15 @@ export const sendMessage = async (req, res) => {
         analyzeMood(historyForAI).then((moodData) => {
             // Emit 'moodUpdate' to both users so the ring changes for everyone
             if (receiverSocketId) {
-                io.to(receiverSocketId).emit("moodUpdate", moodData);
+                io.to(receiverSocketId).emit("moodUpdate", { ...moodData, userId: senderId });
             }
             if (senderSocketId) {
-                io.to(senderSocketId).emit("moodUpdate", moodData);
+                // For the sender, the "partner" in the conversation is the receiver
+                io.to(senderSocketId).emit("moodUpdate", { ...moodData, userId: receiverId });
             }
         }).catch(err => console.error("Mood analysis background error:", err));
 
-        
+
 
         res.json({ success: true, newMessage });
     }
